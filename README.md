@@ -5,7 +5,6 @@
 **Sell your Tauri desktop app with [Polar.sh](https://polar.sh) license keys —
 without ever locking a paying customer out of their own software.**
 
-[![CI](https://github.com/schwwaaa/tauri-plugin-polar-license/actions/workflows/ci.yml/badge.svg)](https://github.com/schwwaaa/tauri-plugin-polar-license/actions/workflows/ci.yml)
 ![Tauri v2](https://img.shields.io/badge/Tauri-v2-24C8DB)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-informational)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)
