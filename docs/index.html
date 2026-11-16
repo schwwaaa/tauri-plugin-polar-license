@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tauri-plugin-polar-license: Polar license keys for Tauri apps</title>
+<meta name="description" content="A Tauri v2 plugin for selling desktop apps with Polar.sh license keys. Customers activate once; after that the app opens instantly, online or not, and is never locked mid-session.">
+<meta property="og:title" content="tauri-plugin-polar-license">
+<meta property="og:description" content="Polar.sh license keys for Tauri v2 apps. Activate once. Launch forever.">
+<link rel="preload" href="fonts/archivo-variable.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Self-hosted fonts (SIL Open Font License, see fonts/OFL-*.txt). */
+  @font-face {
+    font-family: "Archivo";
+    src: url("fonts/archivo-variable.woff2") format("woff2-variations"), url("fonts/archivo-variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-stretch: 62% 125%;
+    font-display: swap;
+  }
+  @font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+
+  :root {
+    --paper: #EDEFEB;
+    --paper-2: #E3E6E1;
+    --ink: #15181C;
+    --graphite: #59616A;
+    --rule: #CBD0C8;
+    --teal: #0C7F8B;
+    --oxide: #B9471D;
+    --code-bg: #1A1E23;
+    --code-ink: #DCE3E6;
+    --code-dim: #8B979F;
+    --sans: "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --measure: 66ch;
+    --gutter: clamp(20px, 5vw, 56px);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 17px/1.6 var(--sans);
+    font-variation-settings: "wdth" 100;
+    text-rendering: optimizeLegibility;
+  }
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 2px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter); }
+
+  /* ── header ── */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
+  .wordmark { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none;
+    font-weight: 700; font-variation-settings: "wdth" 112; letter-spacing: -0.01em; }
+  .wordmark svg { flex: none; }
+  .wordmark span { white-space: nowrap; }
+  .wm-short { display: none; }
+  .top nav { display: flex; gap: 22px; font-size: 15px; }
+  .top nav a { color: var(--graphite); text-decoration: none; }
+  .top nav a:hover { color: var(--ink); }
+
+  /* ── hero ── */
+  .hero { padding: clamp(40px, 9vw, 104px) 0 28px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(46px, 9.2vw, 118px);
+    line-height: 0.92;
+    font-weight: 850;
+    font-variation-settings: "wdth" 125;
+    letter-spacing: -0.035em;
+  }
+  h1 span { display: block; }
+  .lede { max-width: 46ch; margin: 30px 0 0; font-size: clamp(18px, 2.1vw, 21px); line-height: 1.5; color: #2A2F35; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 20px; border-radius: 4px;
+    font: 600 16px var(--sans); text-decoration: none; border: 1.5px solid var(--ink); }
+  .btn-solid { background: var(--ink); color: var(--paper); }
+  .btn-solid:hover { background: #000; color: #fff; }
+  .btn-line { color: var(--ink); }
+  .btn-line:hover { background: var(--paper-2); color: var(--ink); }
+
+  /* ── launch strip (the one memorable thing) ── */
+  .strip { margin: clamp(48px, 7vw, 80px) 0 0; padding: 28px 0 8px; border-top: 1px solid var(--rule); }
+  .strip-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .strip-head h2 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+  .strip-head p { margin: 0; color: var(--graphite); font-size: 15px; }
+  .marks { --cols: 48; display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: clamp(3px, 0.6vw, 7px);
+    align-items: end; height: 92px; margin-top: 26px; }
+  .mark { position: relative; display: block; height: 46px; background: var(--ink); border-radius: 1.5px;
+    transform-origin: bottom; animation: rise 520ms cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i) * 22ms); }
+  .mark.activate { height: 92px; background: var(--oxide); }
+  .mark.check::after { content: ""; position: absolute; left: 50%; top: -13px; width: 7px; height: 7px; margin-left: -3.5px;
+    border-radius: 50%; background: var(--teal); }
+  .mark.revoked { background: var(--ink); }
+  .mark.revoked::after { background: var(--oxide); }
+  .mark.gate { height: 92px; background: transparent; border: 1.5px solid var(--oxide); }
+  .mark.after { background: var(--ink); opacity: .35; }
+  @keyframes rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  .legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 22px 0 0; padding: 0; list-style: none; }
+  .legend li { font-size: 15px; color: var(--graphite); line-height: 1.5; padding-left: 20px; position: relative; }
+  .legend b { display: block; color: var(--ink); font-weight: 650; }
+  .legend li::before { content: ""; position: absolute; left: 0; top: 6px; width: 8px; height: 14px; border-radius: 1.5px; }
+  .legend .l-act::before { background: var(--oxide); }
+  .legend .l-check::before { background: var(--ink); box-shadow: 0 -0px 0 0 var(--ink); }
+  .legend .l-check::after { content: ""; position: absolute; left: 1px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+  .legend .l-rev::before { background: transparent; border: 1.5px solid var(--oxide); }
+
+  /* ── sections ── */
+  section.block { padding: clamp(56px, 8vw, 96px) 0; border-top: 1px solid var(--rule); }
+  .block-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(24px, 5vw, 72px); }
+  h2.section { margin: 0; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.05; font-weight: 800;
+    font-variation-settings: "wdth" 118; letter-spacing: -0.02em; }
+  .section-note { margin: 14px 0 0; color: var(--graphite); font-size: 16px; max-width: 30ch; }
+  .prose { max-width: var(--measure); }
+  h3 { margin: 0 0 6px; font-size: 19px; font-weight: 650; letter-spacing: -0.005em; }
+  p { margin: 0; }
+
+  /* use cases: a ruled list, not cards */
+  .uses { margin: 0; padding: 0; list-style: none; }
+  .uses li { padding: 22px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 15ch) minmax(0, 1fr); gap: 28px; }
+  .uses li:first-child { padding-top: 0; }
+  .uses h3 { margin: 0; }
+  .uses p { color: #31363C; }
+
+  /* lifecycle: a real sequence, so numbered */
+  .steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 30px 64px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -4px; font-size: 34px; font-weight: 800;
+    font-variation-settings: "wdth" 125; color: var(--rule); line-height: 1; }
+  .steps li::after { content: ""; position: absolute; left: 13px; top: 40px; bottom: 6px; width: 1.5px; background: var(--rule); }
+  .steps li:last-child { padding-bottom: 0; }
+  .steps li:last-child::after { display: none; }
+  .steps p { color: #31363C; max-width: var(--measure); }
+  .net { color: var(--oxide); font-weight: 600; }
+  .nonet { color: var(--teal); font-weight: 600; }
+
+  /* messages */
+  .msgs { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .msgs th, .msgs td { text-align: left; vertical-align: top; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .msgs th { width: 32%; padding-right: 28px; font-weight: 600; }
+  .msgs td { color: #31363C; }
+  .msgs q { quotes: "“" "”"; }
+
+  /* install */
+  .install { margin: 0; padding: 0; list-style: none; counter-reset: i; display: grid; gap: 28px; }
+  .install li { counter-increment: i; }
+  .install h3::before { content: counter(i) ". "; color: var(--graphite); }
+  .install p { color: #31363C; margin-bottom: 12px; max-width: var(--measure); }
+  pre { margin: 0; padding: 18px 20px; background: var(--code-bg); color: var(--code-ink); border-radius: 6px;
+    font: 400 14px/1.6 var(--mono); overflow-x: auto; tab-size: 4; }
+  code { font-family: var(--mono); font-size: .92em; }
+  p code, td code, li p code { background: var(--paper-2); padding: 1px 5px; border-radius: 3px; }
+  .c { color: var(--code-dim); }
+  .s { color: #E8B96A; }
+  .k { color: #79C7CF; }
+
+  /* limits */
+  .limits { margin: 0; padding: 0; list-style: none; }
+  .limits li { padding: 16px 0; border-bottom: 1px solid var(--rule); color: #31363C; max-width: var(--measure); }
+  .limits li:first-child { padding-top: 0; }
+  .limits b { color: var(--ink); font-weight: 650; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--rule); padding: 36px 0 56px; color: var(--graphite); font-size: 15px; }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; }
+  .foot nav { display: flex; flex-wrap: wrap; gap: 20px; }
+  .foot a { color: var(--graphite); }
+
+  @media (max-width: 860px) {
+    .block-grid { grid-template-columns: 1fr; }
+    .section-note { max-width: none; }
+    .legend { grid-template-columns: 1fr; gap: 14px; }
+  }
+  @media (max-width: 640px) {
+    .top nav { gap: 16px; }
+    .top nav .hide-sm { display: none; }
+    .wm-full { display: none; }
+    .wm-short { display: inline; }
+    .marks { --cols: 24; height: 76px; }
+    .mark { height: 38px; }
+    .mark.activate, .mark.gate { height: 76px; }
+    .mark.wide-only { display: none; }
+    .uses li { grid-template-columns: 1fr; gap: 6px; }
+    .msgs th { width: 40%; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mark { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="wordmark" href="#top" aria-label="tauri-plugin-polar-license home">
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+          <rect x="1" y="1" width="24" height="24" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+          <rect x="7" y="7" width="3" height="12" rx="1" fill="#B9471D"/>
+          <rect x="12" y="11" width="3" height="8" rx="1" fill="currentColor"/>
+          <rect x="17" y="11" width="3" height="8" rx="1" fill="currentColor"/>
+        </svg>
+        <span class="wm-full">tauri-plugin-polar-license</span><span class="wm-short">polar-license</span>
+      </a>
+      <nav aria-label="Primary">
+        <a class="hide-sm" href="#how">How it works</a>
+        <a class="hide-sm" href="#install">Install</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/tree/main/docs">Docs</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="headline">
+        <h1 id="headline"><span>Activate once.</span><span>Launch forever.</span></h1>
+        <p class="lede">A Tauri v2 plugin for selling desktop apps with <a href="https://polar.sh">Polar.sh</a> license keys.
+          Customers paste their key one time. After that the app opens instantly, online or not, and is never locked in the middle of a session.</p>
+        <div class="actions">
+          <a class="btn btn-solid" href="https://github.com/schwwaaa/tauri-plugin-polar-license">View on GitHub</a>
+          <a class="btn btn-line" href="#install">Add it to your app</a>
+        </div>
+
+        <figure class="strip" aria-labelledby="strip-title">
+          <div class="strip-head">
+            <h2 id="strip-title">Forty-eight launches of one licensed app</h2>
+            <p>Only one of them had to reach the internet.</p>
+          </div>
+          <div class="marks" role="img" aria-label="A row of launch marks. The first is the activation and needs the internet. The rest open with no network; some show a background check that passed. Near the end the key is revoked in Polar, and the gate appears at the next launch.">
+          <span class="mark activate" style="--i:1"></span>
+          <span class="mark launch check" style="--i:2"></span>
+          <span class="mark launch" style="--i:3"></span>
+          <span class="mark launch" style="--i:4"></span>
+          <span class="mark launch" style="--i:5"></span>
+          <span class="mark launch" style="--i:6"></span>
+          <span class="mark launch" style="--i:7"></span>
+          <span class="mark launch" style="--i:8"></span>
+          <span class="mark launch check" style="--i:9"></span>
+          <span class="mark launch" style="--i:10"></span>
+          <span class="mark launch" style="--i:11"></span>
+          <span class="mark launch" style="--i:12"></span>
+          <span class="mark launch" style="--i:13"></span>
+          <span class="mark launch" style="--i:14"></span>
+          <span class="mark launch" style="--i:15"></span>
+          <span class="mark launch check" style="--i:16"></span>
+          <span class="mark launch" style="--i:17"></span>
+          <span class="mark launch" style="--i:18"></span>
+          <span class="mark launch" style="--i:19"></span>
+          <span class="mark launch" style="--i:20"></span>
+          <span class="mark launch" style="--i:21"></span>
+          <span class="mark launch" style="--i:22"></span>
+          <span class="mark launch check" style="--i:23"></span>
+          <span class="mark launch" style="--i:24"></span>
+          <span class="mark launch wide-only" style="--i:25"></span>
+          <span class="mark launch wide-only" style="--i:26"></span>
+          <span class="mark launch wide-only" style="--i:27"></span>
+          <span class="mark launch wide-only" style="--i:28"></span>
+          <span class="mark launch check wide-only" style="--i:29"></span>
+          <span class="mark launch wide-only" style="--i:30"></span>
+          <span class="mark launch wide-only" style="--i:31"></span>
+          <span class="mark launch wide-only" style="--i:32"></span>
+          <span class="mark launch wide-only" style="--i:33"></span>
+          <span class="mark launch wide-only" style="--i:34"></span>
+          <span class="mark launch wide-only" style="--i:35"></span>
+          <span class="mark launch check wide-only" style="--i:36"></span>
+          <span class="mark launch wide-only" style="--i:37"></span>
+          <span class="mark launch wide-only" style="--i:38"></span>
+          <span class="mark launch wide-only" style="--i:39"></span>
+          <span class="mark launch wide-only" style="--i:40"></span>
+          <span class="mark launch check revoked wide-only" style="--i:41"></span>
+          <span class="mark gate wide-only" style="--i:42"></span>
+          <span class="mark launch after wide-only" style="--i:43"></span>
+          <span class="mark launch after wide-only" style="--i:44"></span>
+          <span class="mark launch after wide-only" style="--i:45"></span>
+          <span class="mark launch after wide-only" style="--i:46"></span>
+          <span class="mark launch after wide-only" style="--i:47"></span>
+          <span class="mark launch after wide-only" style="--i:48"></span>
+          </div>
+          <ul class="legend">
+            <li class="l-act"><b>Activation</b>The first launch. The customer pastes their key and Polar records this computer.</li>
+            <li class="l-check"><b>Every launch after</b>Opens from a local license file, with no network wait. When online, a background check confirms the key without holding anything up.</li>
+            <li class="l-rev"><b>Revoked or refunded</b>The session in progress keeps running. The activation screen appears the next time the app opens.</li>
+          </ul>
+        </figure>
+      </section>
+
+      <section class="block" id="uses" aria-labelledby="uses-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="uses-title">Built for software people rely on at work</h2>
+            <p class="section-note">If a license check can ruin your customer’s day, it shouldn’t be able to run at the wrong moment.</p>
+          </div>
+          <ul class="uses">
+            <li><h3>Live performance</h3><p>VJ tools, show control and stage visuals. A projector rig in a basement venue has no Wi-Fi and no patience for a license server. The plugin was designed for this case first.</p></li>
+            <li><h3>Audio and music</h3><p>Instruments, effects hosts and DAW companions that have to open the same way at a session as they did at home.</p></li>
+            <li><h3>Creative tools</h3><p>Editors, generators and utilities sold to individual artists, where one key per person and a simple way to move computers is all the policy you need.</p></li>
+            <li><h3>Installations and kiosks</h3><p>Machines that run unattended and offline for months. They activate during setup and never need to reach Polar again.</p></li>
+            <li><h3>Developer tools</h3><p>Paid desktop utilities from indie developers who want Polar’s checkout, taxes and keys without writing the client side themselves.</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="block" id="how" aria-labelledby="how-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="how-title">What happens, start to finish</h2>
+            <p class="section-note">Polar handles payment, tax and the key itself. The plugin handles everything inside your app.</p>
+          </div>
+          <ol class="steps">
+            <li><h3>The customer buys on Polar</h3><p>Your Polar product carries a License Keys benefit with an activation limit, for example one or three computers. Polar issues the key.</p></li>
+            <li><h3>They paste the key once</h3><p>The activation screen sends it to Polar, which records this computer as one activation. <span class="net">This is the only step that needs the internet.</span> The plugin then starts your real app through an <code>on_licensed</code> hook.</p></li>
+            <li><h3>Every launch after that is local</h3><p>The app reads a license file bound to this computer and opens immediately. <span class="nonet">No network wait, ever.</span> A copied file doesn’t work on a different machine.</p></li>
+            <li><h3>A quiet check runs in the background</h3><p>When there’s a connection, the plugin asks Polar whether the key is still valid. A refund or revocation takes effect at the next launch. Offline, a timeout or a hotel Wi-Fi login page changes nothing.</p></li>
+            <li><h3>Moving to a new computer</h3><p>“Release this machine” frees the slot so the key can move. If a computer loses its license file after a reinstall, an optional free Cloudflare Worker recognizes it and gives it its own activation back.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="block" id="messages" aria-labelledby="msg-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="msg-title">Messages your customers can act on</h2>
+            <p class="section-note">Every message says what happened and what to do next. Raw server errors go to your log, not to your customer.</p>
+          </div>
+          <table class="msgs">
+            <tbody>
+              <tr><th scope="row">Mistyped key</th><td><q>That license key wasn’t recognized. Check that you pasted the whole key.</q></td></tr>
+              <tr><th scope="row">Key in use elsewhere</th><td><q>This license key is already activated on another computer. To move it here, open the app on the other computer and click “Release this machine”, then try again.</q></td></tr>
+              <tr><th scope="row">Key from another of your apps</th><td><q>This license key is for a different product.</q></td></tr>
+              <tr><th scope="row">Key revoked</th><td><q>This license key has been deactivated.</q></td></tr>
+              <tr><th scope="row">No connection</th><td><q>Couldn’t connect to the license server. Check your internet connection and try again.</q></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="block" id="install" aria-labelledby="install-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="install-title">Add it to your app</h2>
+            <p class="section-note">About fifteen lines across Rust, permissions and the front end. Full setup, including Polar, is in the docs.</p>
+          </div>
+          <ol class="install">
+            <li>
+              <h3>Add the crate</h3>
+<pre><code><span class="c"># src-tauri/Cargo.toml</span>
+[dependencies]
+tauri-plugin-polar-license = { git = <span class="s">"https://github.com/schwwaaa/tauri-plugin-polar-license"</span> }</code></pre>
+            </li>
+            <li>
+              <h3>Register the plugin</h3>
+              <p>Give it your Polar IDs and tell it what to start once the license is valid.</p>
+<pre><code>tauri::Builder::default()
+    .plugin(
+        tauri_plugin_polar_license::Builder::new()
+            .production(<span class="s">"POLAR-ORG-ID"</span>, <span class="s">"LICENSE-KEYS-BENEFIT-ID"</span>)
+            .sandbox(<span class="s">"SANDBOX-ORG-ID"</span>, <span class="s">"SANDBOX-BENEFIT-ID"</span>)
+            .use_sandbox(<span class="k">cfg!</span>(debug_assertions))
+            .support_contact(<span class="s">"support@yourapp.com"</span>)
+            .on_licensed(|app| open_main_window(app))
+            .build(),
+    )</code></pre>
+            </li>
+            <li>
+              <h3>Allow it in a capability</h3>
+<pre><code><span class="c">// src-tauri/capabilities/default.json</span>
+{ <span class="s">"permissions"</span>: [<span class="s">"core:default"</span>, <span class="s">"polar-license:default"</span>] }</code></pre>
+            </li>
+            <li>
+              <h3>Mount the activation screen</h3>
+              <p>Plain JavaScript and CSS, restylable with CSS variables. Or use the typed API to build your own.</p>
+<pre><code>PolarLicenseUI.mount({
+  appName: <span class="s">'My App'</span>,
+  onLicensed: () =&gt; startUi(),
+  onReleased: () =&gt; quitApp(),
+});</code></pre>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="block" id="limits" aria-labelledby="limits-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="limits-title">What it doesn’t do</h2>
+            <p class="section-note">Know the trade-offs before you ship. All of them are documented.</p>
+          </div>
+          <ul class="limits">
+            <li><b>It isn’t DRM.</b> Any client-side check can be patched out of an app. The activation limit and Polar’s activation records are your real controls.</li>
+            <li><b>Revocations wait for a connection.</b> A machine that never goes online again keeps working. That’s the price of never blocking a launch.</li>
+            <li><b>Revoke is permanent in Polar.</b> To suspend a key temporarily, disable it instead. Polar’s documentation doesn’t say this; testing against real Polar did.</li>
+            <li><b>A Windows or Linux reinstall counts as a new computer.</b> Those systems generate a new machine ID, so the old activation needs releasing by hand.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="wrap foot">
+      <p>MIT or Apache-2.0. Not affiliated with Polar Software Inc.</p>
+      <nav aria-label="Footer">
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/polar-setup.md">Polar setup</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/caveats.md">Caveats</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/worker.md">Reclaim Worker</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
