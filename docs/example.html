@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Example app · tauri-plugin-polar-license</title>
+<meta name="description" content="A complete Tauri v2 app licensed with tauri-plugin-polar-license. A GPU renderer that doesn't start until the Polar license key is valid. Clone it, add your Polar IDs, and test every licensing case with a real key.">
+<meta property="og:title" content="tauri-plugin-polar-license example">
+<meta property="og:description" content="A complete Tauri v2 app licensed with Polar.sh keys. Licensed before the first frame.">
+<link rel="preload" href="fonts/archivo-variable.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Self-hosted fonts (SIL Open Font License, see fonts/OFL-*.txt). */
+  @font-face {
+    font-family: "Archivo";
+    src: url("fonts/archivo-variable.woff2") format("woff2-variations"), url("fonts/archivo-variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-stretch: 62% 125%;
+    font-display: swap;
+  }
+  @font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+
+  :root {
+    --paper: #EDEFEB;
+    --paper-2: #E3E6E1;
+    --ink: #15181C;
+    --graphite: #59616A;
+    --rule: #CBD0C8;
+    --teal: #0C7F8B;
+    --oxide: #B9471D;
+    --code-bg: #1A1E23;
+    --code-ink: #DCE3E6;
+    --code-dim: #8B979F;
+    --sans: "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --measure: 66ch;
+    --gutter: clamp(20px, 5vw, 56px);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 17px/1.6 var(--sans);
+    font-variation-settings: "wdth" 100;
+    text-rendering: optimizeLegibility;
+  }
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 2px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter); }
+
+  /* ── header ── */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
+  .wordmark { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none;
+    font-weight: 700; font-variation-settings: "wdth" 112; letter-spacing: -0.01em; }
+  .wordmark svg { flex: none; }
+  .wordmark span { white-space: nowrap; }
+  .wm-short { display: none; }
+  .top nav { display: flex; gap: 22px; font-size: 15px; }
+  .top nav a { color: var(--graphite); text-decoration: none; }
+  .top nav a:hover { color: var(--ink); }
+
+  /* ── hero ── */
+  .hero { padding: clamp(40px, 9vw, 104px) 0 28px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(46px, 9.2vw, 118px);
+    line-height: 0.92;
+    font-weight: 850;
+    font-variation-settings: "wdth" 125;
+    letter-spacing: -0.035em;
+  }
+  h1 span { display: block; }
+  .lede { max-width: 46ch; margin: 30px 0 0; font-size: clamp(18px, 2.1vw, 21px); line-height: 1.5; color: #2A2F35; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 20px; border-radius: 4px;
+    font: 600 16px var(--sans); text-decoration: none; border: 1.5px solid var(--ink); }
+  .btn-solid { background: var(--ink); color: var(--paper); }
+  .btn-solid:hover { background: #000; color: #fff; }
+  .btn-line { color: var(--ink); }
+  .btn-line:hover { background: var(--paper-2); color: var(--ink); }
+
+  /* ── launch strip (the one memorable thing) ── */
+  .strip { margin: clamp(48px, 7vw, 80px) 0 0; padding: 28px 0 8px; border-top: 1px solid var(--rule); }
+  .strip-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .strip-head h2 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+  .strip-head p { margin: 0; color: var(--graphite); font-size: 15px; }
+  .marks { --cols: 48; display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: clamp(3px, 0.6vw, 7px);
+    align-items: end; height: 92px; margin-top: 26px; }
+  .mark { position: relative; display: block; height: 46px; background: var(--ink); border-radius: 1.5px;
+    transform-origin: bottom; animation: rise 520ms cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i) * 22ms); }
+  .mark.activate { height: 92px; background: var(--oxide); }
+  .mark.check::after { content: ""; position: absolute; left: 50%; top: -13px; width: 7px; height: 7px; margin-left: -3.5px;
+    border-radius: 50%; background: var(--teal); }
+  .mark.revoked { background: var(--ink); }
+  .mark.revoked::after { background: var(--oxide); }
+  .mark.gate { height: 92px; background: transparent; border: 1.5px solid var(--oxide); }
+  .mark.after { background: var(--ink); opacity: .35; }
+  @keyframes rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  .legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 22px 0 0; padding: 0; list-style: none; }
+  .legend li { font-size: 15px; color: var(--graphite); line-height: 1.5; padding-left: 20px; position: relative; }
+  .legend b { display: block; color: var(--ink); font-weight: 650; }
+  .legend li::before { content: ""; position: absolute; left: 0; top: 6px; width: 8px; height: 14px; border-radius: 1.5px; }
+  .legend .l-act::before { background: var(--oxide); }
+  .legend .l-check::before { background: var(--ink); box-shadow: 0 -0px 0 0 var(--ink); }
+  .legend .l-check::after { content: ""; position: absolute; left: 1px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+  .legend .l-rev::before { background: transparent; border: 1.5px solid var(--oxide); }
+
+  /* ── sections ── */
+  section.block { padding: clamp(56px, 8vw, 96px) 0; border-top: 1px solid var(--rule); }
+  .block-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(24px, 5vw, 72px); }
+  h2.section { margin: 0; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.05; font-weight: 800;
+    font-variation-settings: "wdth" 118; letter-spacing: -0.02em; }
+  .section-note { margin: 14px 0 0; color: var(--graphite); font-size: 16px; max-width: 30ch; }
+  .prose { max-width: var(--measure); }
+  h3 { margin: 0 0 6px; font-size: 19px; font-weight: 650; letter-spacing: -0.005em; }
+  p { margin: 0; }
+
+  /* use cases: a ruled list, not cards */
+  .uses { margin: 0; padding: 0; list-style: none; }
+  .uses li { padding: 22px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 15ch) minmax(0, 1fr); gap: 28px; }
+  .uses li:first-child { padding-top: 0; }
+  .uses h3 { margin: 0; }
+  .uses p { color: #31363C; }
+
+  /* lifecycle: a real sequence, so numbered */
+  .steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 30px 64px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -4px; font-size: 34px; font-weight: 800;
+    font-variation-settings: "wdth" 125; color: var(--rule); line-height: 1; }
+  .steps li::after { content: ""; position: absolute; left: 13px; top: 40px; bottom: 6px; width: 1.5px; background: var(--rule); }
+  .steps li:last-child { padding-bottom: 0; }
+  .steps li:last-child::after { display: none; }
+  .steps p { color: #31363C; max-width: var(--measure); }
+  .net { color: var(--oxide); font-weight: 600; }
+  .nonet { color: var(--teal); font-weight: 600; }
+
+  /* messages */
+  .msgs { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .msgs th, .msgs td { text-align: left; vertical-align: top; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .msgs th { width: 32%; padding-right: 28px; font-weight: 600; }
+  .msgs td { color: #31363C; }
+  .msgs q { quotes: "“" "”"; }
+
+  /* install */
+  .install { margin: 0; padding: 0; list-style: none; counter-reset: i; display: grid; gap: 28px; }
+  .install li { counter-increment: i; }
+  .install h3::before { content: counter(i) ". "; color: var(--graphite); }
+  .install p { color: #31363C; margin-bottom: 12px; max-width: var(--measure); }
+  pre { margin: 0; padding: 18px 20px; background: var(--code-bg); color: var(--code-ink); border-radius: 6px;
+    font: 400 14px/1.6 var(--mono); overflow-x: auto; tab-size: 4; }
+  code { font-family: var(--mono); font-size: .92em; }
+  p code, td code, li p code { background: var(--paper-2); padding: 1px 5px; border-radius: 3px; }
+  .c { color: var(--code-dim); }
+  .s { color: #E8B96A; }
+  .k { color: #79C7CF; }
+
+  /* limits */
+  .limits { margin: 0; padding: 0; list-style: none; }
+  .limits li { padding: 16px 0; border-bottom: 1px solid var(--rule); color: #31363C; max-width: var(--measure); }
+  .limits li:first-child { padding-top: 0; }
+  .limits b { color: var(--ink); font-weight: 650; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--rule); padding: 36px 0 56px; color: var(--graphite); font-size: 15px; }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; }
+  .foot nav { display: flex; flex-wrap: wrap; gap: 20px; }
+  .foot a { color: var(--graphite); }
+
+  @media (max-width: 860px) {
+    .block-grid { grid-template-columns: 1fr; }
+    .section-note { max-width: none; }
+    .legend { grid-template-columns: 1fr; gap: 14px; }
+  }
+  @media (max-width: 640px) {
+    .top nav { gap: 16px; }
+    .top nav .hide-sm { display: none; }
+    .wm-full { display: none; }
+    .wm-short { display: inline; }
+    .marks { --cols: 24; height: 76px; }
+    .mark { height: 38px; }
+    .mark.activate, .mark.gate { height: 76px; }
+    .mark.wide-only { display: none; }
+    .uses li { grid-template-columns: 1fr; gap: 6px; }
+    .msgs th { width: 40%; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mark { animation: none; }
+  }
+
+  /* ── example: the two-window diagram (this page's one memorable thing) ── */
+  .states { margin: clamp(48px, 7vw, 80px) 0 0; padding: 28px 0 8px; border-top: 1px solid var(--rule); }
+  .states-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: clamp(14px, 2.4vw, 28px); align-items: center; margin-top: 26px; }
+  .state h3 { font-size: 15px; font-weight: 600; color: var(--graphite); margin: 0 0 12px; }
+  .desk { position: relative; height: 250px; background: var(--paper-2); border-radius: 6px; overflow: hidden; }
+  .win { position: absolute; top: 26px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--paper); overflow: hidden; }
+  .win .bar { height: 22px; border-bottom: 1.5px solid var(--ink); font: 500 11px/20px var(--mono); padding: 0 8px; color: var(--graphite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .controls { left: 18px; width: 46%; height: 196px; }
+  .renderer { right: 18px; top: 48px; width: 44%; height: 160px; background: var(--code-bg); border-color: var(--ink); }
+  .renderer .bar { background: var(--paper); }
+  .renderer svg { display: block; width: 100%; height: calc(100% - 22px); }
+  .renderer.absent { background: transparent; border: 1.5px dashed var(--graphite); }
+  .renderer.absent .bar { background: transparent; border-bottom: 1.5px dashed var(--graphite); }
+  .absent-note { display: grid; place-items: center; height: calc(100% - 22px); font-size: 13px; color: var(--graphite); text-align: center; padding: 0 10px; }
+  .rows { padding: 12px 10px; display: grid; gap: 8px; }
+  .rows i { display: block; height: 6px; border-radius: 3px; background: var(--rule); }
+  .rows i:nth-child(2n) { width: 70%; }
+  .gate { position: absolute; left: 10px; right: 10px; top: 46px; padding: 12px; background: var(--ink); border-radius: 5px; }
+  .gate b { display: block; height: 7px; width: 55%; border-radius: 3px; background: var(--paper); opacity: .85; }
+  .gate .field { height: 18px; margin: 12px 0 8px; border: 1px solid var(--graphite); border-radius: 3px; }
+  .gate .go { height: 16px; width: 42%; border-radius: 3px; background: var(--teal); }
+  .hook { font: 500 13px var(--mono); color: var(--teal); text-align: center; white-space: nowrap; }
+  .hook svg { display: block; margin: 6px auto 0; }
+  .file { font-family: var(--mono); font-size: 15px; font-weight: 500; letter-spacing: 0; overflow-wrap: anywhere; }
+  .warn { margin-top: 26px; padding: 16px 18px; border-left: 3px solid var(--oxide); background: var(--paper-2); color: #31363C; max-width: var(--measure); }
+  .related { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 28px 0; }
+  .top nav a[aria-current="page"] { color: var(--ink); }
+  .related p { color: #31363C; max-width: 60ch; }
+  @media (max-width: 860px) {
+    .states-grid { grid-template-columns: 1fr; }
+    .hook { display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .hook svg { margin: 0; transform: rotate(90deg); }
+    .related { grid-template-columns: 1fr; }
+  }
+  .uses li.files { grid-template-columns: minmax(0, 24ch) minmax(0, 1fr); }
+  .runs th { width: auto; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .uses li.files { grid-template-columns: 1fr; }
+    .controls { left: 10px; width: 47%; }
+    .renderer { right: 10px; width: 45%; }
+    .runs th, .runs td { display: block; width: auto; }
+    .runs th { padding-bottom: 2px; border-bottom: 0; }
+    .runs td { padding-top: 0; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="wordmark" href="index.html" aria-label="tauri-plugin-polar-license home">
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+          <rect x="1" y="1" width="24" height="24" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+          <rect x="7" y="7" width="3" height="12" rx="1" fill="#B9471D"/>
+          <rect x="12" y="11" width="3" height="8" rx="1" fill="currentColor"/>
+          <rect x="17" y="11" width="3" height="8" rx="1" fill="currentColor"/>
+        </svg>
+        <span class="wm-full">tauri-plugin-polar-license</span><span class="wm-short">polar-license</span>
+      </a>
+      <nav aria-label="Primary">
+        <a class="hide-sm" href="index.html#how">How it works</a>
+        <a class="hide-sm" href="index.html#install">Install</a>
+        <a href="example.html" aria-current="page">Example</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/tree/main/docs">Docs</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="headline">
+        <h1 id="headline"><span>Licensed before</span><span>the first frame.</span></h1>
+        <p class="lede">A complete Tauri v2 app wired to <a href="index.html">tauri-plugin-polar-license</a>.
+          It’s a GPU voxel renderer that doesn’t create its window, or touch the GPU, until the license key is valid.
+          Clone it, add your Polar IDs, and try every licensing case with a real key before adding the plugin to your own app.</p>
+        <div class="actions">
+          <a class="btn btn-solid" href="https://github.com/schwwaaa/tauri-plugin-polar-license-example">Get the example code</a>
+          <a class="btn btn-line" href="index.html#install">Add the plugin to your app</a>
+        </div>
+
+        <figure class="states" aria-labelledby="states-title">
+          <div class="strip-head">
+            <h2 id="states-title">Two windows, one gate</h2>
+            <p>The controls window always opens. The renderer waits for the license.</p>
+          </div>
+          <div class="states-grid">
+            <div class="state">
+              <h3>Not licensed yet</h3>
+              <div class="desk" role="img" aria-label="The controls window is open and shows the activation screen. The renderer window doesn't exist yet.">
+                <div class="win controls"><div class="bar">Controls</div><div class="rows"><i></i><i></i><i></i></div>
+                  <div class="gate"><b></b><div class="field"></div><div class="go"></div></div></div>
+                <div class="win renderer absent"><div class="bar">Renderer</div><div class="absent-note">Not created.<br>No GPU work.</div></div>
+              </div>
+            </div>
+            <div class="hook" aria-hidden="true">on_licensed<svg width="56" height="14" viewBox="0 0 56 14" aria-hidden="true"><path d="M0 7h50M44 1l7 6-7 6" fill="none" stroke="#0C7F8B" stroke-width="1.6"/></svg></div>
+            <div class="state">
+              <h3>Licensed</h3>
+              <div class="desk" role="img" aria-label="The controls window shows the app's controls, and the renderer window is open, drawing the voxel volume.">
+                <div class="win controls"><div class="bar">Controls</div><div class="rows"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                <div class="win renderer"><div class="bar">Renderer</div><svg viewBox="0 0 206 116" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><rect x="58" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.29"/><rect x="67" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.26"/><rect x="76" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.33"/><rect x="85" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.41"/><rect x="94" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.33"/><rect x="103" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.39"/><rect x="112" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.31"/><rect x="121" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.40"/><rect x="130" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.38"/><rect x="139" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.31"/><rect x="148" y="22" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.28"/><rect x="31" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.25"/><rect x="40" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.26"/><rect x="49" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.43"/><rect x="58" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.49"/><rect x="67" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.63"/><rect x="76" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.64"/><rect x="85" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.52"/><rect x="94" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.56"/><rect x="103" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.65"/><rect x="112" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.46"/><rect x="121" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.57"/><rect x="130" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.46"/><rect x="139" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.42"/><rect x="148" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.37"/><rect x="157" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.44"/><rect x="166" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.27"/><rect x="175" y="31" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.22"/><rect x="22" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.29"/><rect x="31" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.45"/><rect x="40" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.54"/><rect x="49" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.64"/><rect x="58" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.54"/><rect x="67" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.63"/><rect x="76" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.65"/><rect x="85" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.87"/><rect x="94" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.62"/><rect x="103" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.63"/><rect x="112" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.65"/><rect x="121" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.63"/><rect x="130" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.70"/><rect x="139" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.69"/><rect x="148" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.54"/><rect x="157" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.42"/><rect x="166" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.45"/><rect x="175" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.36"/><rect x="184" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.29"/><rect x="193" y="40" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.20"/><rect x="13" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.27"/><rect x="22" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.40"/><rect x="31" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.51"/><rect x="40" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.44"/><rect x="49" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.76"/><rect x="58" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.83"/><rect x="67" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.71"/><rect x="76" y="49" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.75"/><rect x="85" y="49" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.88"/><rect x="94" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.65"/><rect x="103" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.72"/><rect x="112" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.69"/><rect x="121" y="49" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.75"/><rect x="130" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.59"/><rect x="139" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.62"/><rect x="148" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.56"/><rect x="157" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.59"/><rect x="166" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.44"/><rect x="175" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.56"/><rect x="184" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.40"/><rect x="193" y="49" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.23"/><rect x="13" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.28"/><rect x="22" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.38"/><rect x="31" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.42"/><rect x="40" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.69"/><rect x="49" y="58" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.83"/><rect x="58" y="58" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.72"/><rect x="67" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.63"/><rect x="76" y="58" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.76"/><rect x="85" y="58" width="7" height="7" rx="1" fill="#E07A4C" opacity="1.00"/><rect x="94" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.66"/><rect x="103" y="58" width="7" height="7" rx="1" fill="#E07A4C" opacity="1.00"/><rect x="112" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.71"/><rect x="121" y="58" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.87"/><rect x="130" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.83"/><rect x="139" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.93"/><rect x="148" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.64"/><rect x="157" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.62"/><rect x="166" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.50"/><rect x="175" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.57"/><rect x="184" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.41"/><rect x="193" y="58" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.33"/><rect x="13" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.24"/><rect x="22" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.43"/><rect x="31" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.58"/><rect x="40" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.66"/><rect x="49" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.73"/><rect x="58" y="67" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.78"/><rect x="67" y="67" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.76"/><rect x="76" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.60"/><rect x="85" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.62"/><rect x="94" y="67" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.74"/><rect x="103" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.93"/><rect x="112" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.82"/><rect x="121" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="1.00"/><rect x="130" y="67" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.74"/><rect x="139" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.65"/><rect x="148" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.59"/><rect x="157" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.55"/><rect x="166" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.60"/><rect x="175" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.56"/><rect x="184" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.43"/><rect x="193" y="67" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.27"/><rect x="13" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.19"/><rect x="22" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.24"/><rect x="31" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.41"/><rect x="40" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.56"/><rect x="49" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.62"/><rect x="58" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.68"/><rect x="67" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.66"/><rect x="76" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.59"/><rect x="85" y="76" width="7" height="7" rx="1" fill="#E07A4C" opacity="0.84"/><rect x="94" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.86"/><rect x="103" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.71"/><rect x="112" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.71"/><rect x="121" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.90"/><rect x="130" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.59"/><rect x="139" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.54"/><rect x="148" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.51"/><rect x="157" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.65"/><rect x="166" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.54"/><rect x="175" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.33"/><rect x="184" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.32"/><rect x="193" y="76" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.20"/><rect x="31" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.21"/><rect x="40" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.26"/><rect x="49" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.48"/><rect x="58" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.49"/><rect x="67" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.52"/><rect x="76" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.67"/><rect x="85" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.56"/><rect x="94" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.71"/><rect x="103" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.70"/><rect x="112" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.51"/><rect x="121" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.51"/><rect x="130" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.50"/><rect x="139" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.45"/><rect x="148" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.48"/><rect x="157" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.35"/><rect x="166" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.31"/><rect x="175" y="85" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.21"/><rect x="49" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.19"/><rect x="58" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.25"/><rect x="67" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.30"/><rect x="76" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.27"/><rect x="85" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.36"/><rect x="94" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.33"/><rect x="103" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.31"/><rect x="112" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.44"/><rect x="121" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.32"/><rect x="130" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.34"/><rect x="139" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.33"/><rect x="148" y="94" width="7" height="7" rx="1" fill="#3FB3BF" opacity="0.25"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <ul class="legend">
+            <li class="l-rev"><b>Before the license</b>The plugin shows its activation screen inside the controls window. Nothing else starts.</li>
+            <li class="l-act"><b>The moment it’s valid</b>The plugin calls <code>on_licensed</code> once, on the main thread. The app creates the renderer window and starts wgpu there.</li>
+            <li class="l-check"><b>Every launch after</b>The license is already on this computer, so <code>on_licensed</code> runs straight away and the renderer opens with no wait.</li>
+          </ul>
+        </figure>
+      </section>
+
+      <section class="block" id="files" aria-labelledby="files-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="files-title">Five files do the licensing</h2>
+            <p class="section-note">Everything else in the repo is the demo app. These are the parts to copy into yours.</p>
+          </div>
+          <ul class="uses">
+            <li class="files"><h3 class="file">polar_config.rs</h3><p>Builds the plugin: your Polar IDs, the sandbox or production switch, the optional Worker and support contact, and <code>on_licensed</code>, which starts the renderer.</p></li>
+            <li class="files"><h3 class="file">main.rs</h3><p>Registers the plugin with one line, and defines <code>start_renderer()</code>, which only the plugin calls.</p></li>
+            <li class="files"><h3 class="file">capabilities/default.json</h3><p>Lets the controls window use the plugin’s commands with <code>polar-license:default</code>.</p></li>
+            <li class="files"><h3 class="file">app.js</h3><p>Mounts the activation screen and adds a License button that opens the license panel.</p></li>
+            <li class="files"><h3 class="file">build.rs</h3><p>Reads your settings from a local <code>polar.env</code> file, so your IDs never land in the repository.</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="block" id="setup" aria-labelledby="setup-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="setup-title">Set it up</h2>
+            <p class="section-note">You need Rust, Node.js 18 or newer, the Tauri v2 prerequisites, and a Polar product with a License Keys benefit.</p>
+          </div>
+          <ol class="install">
+            <li>
+              <h3>Install the JavaScript dependencies</h3>
+              <p>In a terminal, in the repository’s folder:</p>
+<pre><code>npm install</code></pre>
+            </li>
+            <li>
+              <h3>Create your settings file</h3>
+              <p>Copy the template. The copy is git-ignored, so it stays on your machine.</p>
+<pre><code>cp src-tauri/polar.env.example src-tauri/polar.env</code></pre>
+            </li>
+            <li>
+              <h3>Fill in your Polar IDs</h3>
+              <p>Open <code>src-tauri/polar.env</code> in an editor. You only need the pair for the Polar you’ll test against. <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/polar-setup.md">Where to find each ID</a>.</p>
+<pre><code><span class="c"># src-tauri/polar.env</span>
+POLAR_PRODUCTION_ORGANIZATION_ID=<span class="s">your-org-id</span>
+POLAR_PRODUCTION_BENEFIT_ID=<span class="s">your-benefit-id</span>
+POLAR_SANDBOX_ORGANIZATION_ID=<span class="s">your-sandbox-org-id</span>
+POLAR_SANDBOX_BENEFIT_ID=<span class="s">your-sandbox-benefit-id</span>
+
+<span class="c"># optional</span>
+POLAR_RECLAIM_URL=<span class="s">https://polar-license.yourname.workers.dev</span>
+POLAR_SUPPORT_CONTACT=<span class="s">support@yourapp.com</span></code></pre>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="block" id="run" aria-labelledby="run-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="run-title">Run it</h2>
+            <p class="section-note">Debug builds talk to the Polar sandbox unless you ask for production.</p>
+          </div>
+          <div>
+          <table class="msgs runs">
+            <tbody>
+              <tr><th scope="row"><code>npm run dev:metal</code></th><td>Polar sandbox, debug build, macOS</td></tr>
+              <tr><th scope="row"><code>npm run dev:metal:production</code></th><td>Polar production, debug build, macOS</td></tr>
+              <tr><th scope="row"><code>npm run dev:vulkan</code></th><td>Polar sandbox, debug build. Also <code>dev:dx12</code> and <code>dev:gl</code></td></tr>
+              <tr><th scope="row"><code>npm run build</code></th><td>Polar production, release build</td></tr>
+            </tbody>
+          </table>
+          <p class="warn" style="border-left-color:var(--teal)">A sandbox build’s activation screen says “Test build — using the Polar sandbox.” Debug builds also print a <code>[polar-license]</code> line in the terminal for every licensing event.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="test" aria-labelledby="test-title">
+        <div class="block-grid">
+          <div>
+            <h2 class="section" id="test-title">Test every case with one key</h2>
+            <p class="section-note">Get a sandbox key with the test card 4242 4242 4242 4242, or a production key from a free product or a 100% discount code.</p>
+          </div>
+          <div>
+          <ol class="steps">
+            <li><h3>Activate</h3><p>Paste the key and click Activate. The activation screen closes and the renderer window opens. <span class="net">The only step that needs the internet.</span></p></li>
+            <li><h3>Relaunch</h3><p>Quit and run the app again. The renderer opens immediately, with no activation screen.</p></li>
+            <li><h3>Relaunch offline</h3><p>Turn off Wi-Fi and run it again. <span class="nonet">The renderer still opens.</span> The license panel says the license wasn’t checked this time.</p></li>
+            <li><h3>Release this machine</h3><p>Open the License panel, click Release this machine, then click again to confirm. The app quits, and Polar shows no activations for the key.</p></li>
+            <li><h3>Activate again</h3><p>Run the app and paste the key. It activates, using the slot you just freed.</p></li>
+            <li><h3>Disable the key in Polar</h3><p>Run the app twice. The first run still works and the panel says the license was deactivated. The second shows the activation screen.</p></li>
+            <li><h3>Re-enable it</h3><p>Enable the key in Polar and paste it again. It activates.</p></li>
+          </ol>
+          <p class="warn"><b>Don’t revoke a key you want to keep testing with.</b> In Polar a revoke is permanent: re-enabling it afterwards changes nothing. <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/caveats.md">More in the caveats</a>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="plugin" aria-labelledby="plugin-title">
+        <div class="related">
+          <div>
+            <h2 class="section" id="plugin-title">Ready for your own app?</h2>
+            <p style="margin-top:14px">Four steps add the plugin to any Tauri v2 app. <a href="index.html#how">How it works</a> explains activation, background checks and moving computers.</p>
+          </div>
+          <a class="btn btn-solid" href="index.html#install">Add it to your app</a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="wrap foot">
+      <p>MIT or Apache-2.0. Not affiliated with Polar Software Inc.</p>
+      <nav aria-label="Footer">
+        <a href="example.html">Example app</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/polar-setup.md">Polar setup</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/caveats.md">Caveats</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license/blob/main/docs/worker.md">Reclaim Worker</a>
+        <a href="https://github.com/schwwaaa/tauri-plugin-polar-license">Source</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
