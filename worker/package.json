@@ -1,0 +1,6 @@
+{
+  "name": "polar-license-reclaim-worker",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node test/run.mjs" }
+}

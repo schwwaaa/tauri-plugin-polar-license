@@ -1,0 +1,119 @@
+/*
+ * tauri-plugin-polar-license — drop-in UI styles.
+ *
+ * Restyle by overriding the variables on :root (or any ancestor), e.g.
+ *   :root { --pl-accent: #ff4d8d; --pl-font: "Inter", sans-serif; }
+ * All classes are prefixed `pl-` so they can't collide with your app's.
+ */
+:root {
+  --pl-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --pl-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --pl-backdrop: rgba(4, 6, 11, 0.82);
+  --pl-surface: #0f1520;
+  --pl-surface-2: #141c28;
+  --pl-border: #29364a;
+  --pl-border-strong: #3c4b63;
+  --pl-text: #eef5fb;
+  --pl-muted: #98a8bc;
+  --pl-accent: #67d8ff;
+  --pl-accent-text: #04121a;
+  --pl-eyebrow: #a8ff8b;
+  --pl-danger: #ff8d9b;
+  --pl-ok: #86f1ae;
+  --pl-radius: 14px;
+  --pl-control-radius: 9px;
+  --pl-z: 10000;
+}
+
+.pl-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pl-z);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: var(--pl-backdrop);
+  font-family: var(--pl-font);
+  color: var(--pl-text);
+}
+
+.pl-dialog {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius);
+  background: var(--pl-surface);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.pl-eyebrow {
+  margin: 0 0 8px;
+  color: var(--pl-eyebrow);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pl-title { margin: 0 0 10px; font-size: 22px; letter-spacing: -0.01em; }
+.pl-text, .pl-note { margin: 0 0 14px; color: var(--pl-muted); font-size: 13.5px; line-height: 1.55; }
+.pl-note { font-size: 12px; margin: 14px 0 0; }
+
+.pl-overlay .pl-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--pl-border-strong);
+  border-radius: var(--pl-control-radius);
+  background: var(--pl-surface-2);
+  color: var(--pl-text);
+  font: 13px var(--pl-mono);
+  letter-spacing: 0.02em;
+}
+.pl-overlay .pl-input:focus { outline: none; border-color: var(--pl-accent); }
+
+.pl-message { min-height: 18px; margin: 10px 0 14px; color: var(--pl-muted); font-size: 12.5px; line-height: 1.5; }
+.pl-error { color: var(--pl-danger); }
+.pl-busy { color: var(--pl-accent); }
+.pl-ok { color: var(--pl-ok); }
+
+.pl-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Buttons are scoped under .pl-overlay (and repeat :hover:not(:disabled))
+   so a host app's global `button` / `button:hover` rules can't override them. */
+.pl-overlay .pl-button {
+  appearance: none;
+  padding: 9px 14px;
+  border: 1px solid var(--pl-border-strong);
+  border-radius: var(--pl-control-radius);
+  background: var(--pl-surface-2);
+  color: var(--pl-text);
+  font: 600 13px var(--pl-font);
+  opacity: 1;
+  transform: none;
+  cursor: pointer;
+}
+.pl-overlay .pl-button:hover:not(:disabled) { border-color: var(--pl-accent); transform: none; }
+.pl-overlay .pl-button:focus { outline: none; }
+.pl-overlay .pl-button:focus-visible { outline: 2px solid var(--pl-accent); outline-offset: 2px; }
+.pl-overlay .pl-button:disabled { opacity: 0.6; cursor: default; }
+.pl-overlay .pl-primary,
+.pl-overlay .pl-primary:hover:not(:disabled) { background: var(--pl-accent); border-color: var(--pl-accent); color: var(--pl-accent-text); }
+.pl-overlay .pl-armed,
+.pl-overlay .pl-armed:hover:not(:disabled) { border-color: var(--pl-danger); color: var(--pl-danger); }
+
+.pl-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 6px 0 4px;
+  font-size: 13px;
+}
+.pl-details dt { color: var(--pl-muted); }
+.pl-details dd { margin: 0; overflow-wrap: anywhere; }
+.pl-check-confirmed { color: var(--pl-ok); }
+.pl-check-deactivated { color: var(--pl-danger); }
+.pl-check-pending, .pl-check-offline { color: var(--pl-muted); }

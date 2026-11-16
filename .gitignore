@@ -1,0 +1,6 @@
+/target
+/node_modules
+Cargo.lock
+worker/config.env
+worker/secrets.env
+.DS_Store

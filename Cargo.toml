@@ -1,0 +1,32 @@
+[package]
+name = "tauri-plugin-polar-license"
+version = "0.1.0"
+description = "Polar.sh license keys for Tauri v2 apps: one-time activation, offline-safe launch checks, self-service release and automatic recovery."
+authors = ["schwwaaa"]
+edition = "2021"
+rust-version = "1.77.2"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/schwwaaa/tauri-plugin-polar-license"
+readme = "README.md"
+keywords = ["tauri", "tauri-plugin", "polar", "license", "licensing"]
+categories = ["gui", "authentication"]
+# Tauri plugins declare `links` so their permission files are exported to the app.
+links = "tauri-plugin-polar-license"
+exclude = ["/worker", "/ui", "/guest-js", "/dist-js", "/docs", "/.github", "/node_modules", "/package.json", "/package-lock.json", "/tsconfig.json"]
+
+[dependencies]
+tauri = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+log = "0.4"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+sha2 = "0.10"
+machine-uid = "0.5"
+gethostname = "1"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dev-dependencies]
+tiny_http = "0.12"

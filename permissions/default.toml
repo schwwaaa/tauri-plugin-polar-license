@@ -1,0 +1,14 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Allows the app's front end to read the license status, activate a key,
+release this computer's activation, and read the result of the launch check.
+This is everything the bundled UI needs.
+"""
+permissions = [
+  "allow-status",
+  "allow-activate",
+  "allow-release",
+  "allow-launch-check",
+]
